@@ -156,6 +156,13 @@ void PID_controller(MOTOR_PID *pid)
     }*/
     pid->output = constrain(out,0,200);
 		pid->last_feedback = pid->feedback;
+	}
+}
+
+static void MotorControl(MOTOR_PID *pid)
+{
+  if(abs(pid->target) <= 200 && abs(pid->target) >= 0)
+  {
     if(abs(pid->target) >= 1)
     {
       if (pid->target >= 0) 
@@ -182,11 +189,8 @@ void PID_controller(MOTOR_PID *pid)
   }
 }
 
-
 Turtlebot3MotorDriver::Turtlebot3MotorDriver()
-: protocol_version_(PROTOCOL_VERSION),
-  m_pid_l({0}),
-  m_pid_r({0})
+: protocol_version_(PROTOCOL_VERSION)
 {
 }
 
@@ -200,41 +204,41 @@ bool Turtlebot3MotorDriver::init(void)
    PID Init
   ******************************************************************************/
 	// left wheel initialize pid parameter
-	m_pid_l.e_0 = 0;
-	m_pid_l.e_1 = 0;
-	m_pid_l.e_2 = 0;
-	m_pid_l.Proportion = 0;
-	m_pid_l.Integral = 40.0;
-	m_pid_l.Differential = 0;
-	m_pid_l.Kp = KP;
-	m_pid_l.Ki = KI;
-	m_pid_l.Kd = KD;
-	m_pid_l.output = 0;
-	m_pid_l.target = 0;
-	m_pid_l.feedback = 0;
-	m_pid_l.last_feedback = 0;
-	m_pid_l.motorA = MOTOR1_A;
-	m_pid_l.motorB = MOTOR1_B;
-  myPWM_Init(m_pid_l.motorA);
-  myPWM_Init(m_pid_l.motorB);
+	m_pid[0].e_0 = 0;
+	m_pid[0].e_1 = 0;
+	m_pid[0].e_2 = 0;
+	m_pid[0].Proportion = 0;
+	m_pid[0].Integral = 40.0;
+	m_pid[0].Differential = 0;
+	m_pid[0].Kp = KP-0.2;
+	m_pid[0].Ki = KI;
+	m_pid[0].Kd = KD;
+	m_pid[0].output = 0;
+	m_pid[0].target = 0;
+	m_pid[0].feedback = 0;
+	m_pid[0].last_feedback = 0;
+	m_pid[0].motorA = MOTOR1_A;
+	m_pid[0].motorB = MOTOR1_B;
+  myPWM_Init(m_pid[0].motorA);
+  myPWM_Init(m_pid[0].motorB);
 	// right wheel initialize pid parameter
-	m_pid_r.e_0 = 0;
-	m_pid_r.e_1 = 0;
-	m_pid_r.e_2 = 0;
-	m_pid_r.Proportion = 0;
-	m_pid_r.Integral = 40.0;
-	m_pid_r.Differential = 0;
-	m_pid_r.Kp = KP;
-	m_pid_r.Ki = KI;
-	m_pid_r.Kd = KD;
-	m_pid_r.output = 0;
-	m_pid_r.target = 0;
-	m_pid_r.feedback = 0;
-	m_pid_r.last_feedback = 0;
-	m_pid_r.motorA = MOTOR2_A;
-	m_pid_r.motorB = MOTOR2_B;
-  myPWM_Init(m_pid_r.motorA);
-  myPWM_Init(m_pid_r.motorB);
+	m_pid[1].e_0 = 0;
+	m_pid[1].e_1 = 0;
+	m_pid[1].e_2 = 0;
+	m_pid[1].Proportion = 0;
+	m_pid[1].Integral = 40.0;
+	m_pid[1].Differential = 0;
+	m_pid[1].Kp = KP;
+	m_pid[1].Ki = KI;
+	m_pid[1].Kd = KD;
+	m_pid[1].output = 0;
+	m_pid[1].target = 0;
+	m_pid[1].feedback = 0;
+	m_pid[1].last_feedback = 0;
+	m_pid[1].motorA = MOTOR2_A;
+	m_pid[1].motorB = MOTOR2_B;
+  myPWM_Init(m_pid[1].motorA);
+  myPWM_Init(m_pid[1].motorB);
   return true;
 }
 
@@ -248,21 +252,16 @@ bool Turtlebot3MotorDriver::readEncoder(int32_t &left_value, int32_t &right_valu
 }
 
 void  Turtlebot3MotorDriver::Count_and_Direction(Wheel *omni) {
+  unsigned long cur_tick = micros();
+  if( abs(cur_tick - omni->tick) < 100 ){
+    omni->tick = cur_tick;
+    return;
+  }
+  omni->tick = cur_tick;
 	// feedback speed counter
   omni->count += 1;
-  // odom counter
-  if (digitalRead(omni->encoder_a) == HIGH) {
-
-    if (digitalRead(omni->encoder_b) == LOW) {
-      omni->dir = 0; //forward
-      omni->counter ++;
-    }
-    else {
-      omni->dir = 1; //backward
-      omni->counter -= 1;
-    }
-  }
-  else if (digitalRead(omni->encoder_b) == HIGH) {
+  
+  if (digitalRead(omni->encoder_b) == LOW) {
     omni->dir = 0; //forward
     omni->counter ++;
   }
@@ -275,12 +274,14 @@ void  Turtlebot3MotorDriver::Count_and_Direction(Wheel *omni) {
 
 bool Turtlebot3MotorDriver::speedControl(int64_t left_wheel_value, int64_t right_wheel_value, float left_speed, float right_speed)
 {
-	m_pid_l.feedback = abs(left_speed);
-	m_pid_r.feedback = abs(right_speed);
-  m_pid_l.target = left_wheel_value;
-  m_pid_r.target = right_wheel_value;
-  PID_controller(&m_pid_r);
-  PID_controller(&m_pid_l);
+	m_pid[LEFT].feedback = abs(left_speed);
+	m_pid[RIGHT].feedback = abs(right_speed);
+  m_pid[LEFT].target = left_wheel_value;
+  m_pid[RIGHT].target = right_wheel_value;
+  PID_controller(&m_pid[LEFT]);
+  PID_controller(&m_pid[RIGHT]);
+  MotorControl(&m_pid[LEFT]);
+  MotorControl(&m_pid[RIGHT]);
   
   return true;
 }

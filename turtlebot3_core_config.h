@@ -41,27 +41,28 @@
 
 #include "turtlebot3_motor_driver.h"
 #include "sonar.h"
-
+#include "Serial_cmd.h"
+#define MY_PI                            3.141592653
 #define CONTROL_MOTOR_SPEED_PERIOD       15   //hz
-#define IMU_PUBLISH_PERIOD               200  //hz
+#define IMU_PUBLISH_PERIOD               50  //hz
 #define SENSOR_STATE_PUBLISH_PERIOD      30   //hz
 #define CMD_VEL_PUBLISH_PERIOD           30   //hz
 #define DRIVE_INFORMATION_PUBLISH_PERIOD 30   //hz
 #define DRIVE_TEST_PERIOD                30   //hz
 
+#define MOTOR_PULSE                      570
 #define WHEEL_RADIUS                     0.033           // meter
 #define WHEEL_SEPARATION                 0.185           // meter (BURGER : 0.160, WAFFLE : 0.287)
-#define TURNING_RADIUS                   0.1435          // meter (BURGER : 0.080, WAFFLE : 0.1435)
-#define ROBOT_RADIUS                     0.87           // meter (BURGER : 0.105, WAFFLE : 0.220)
+//#define TURNING_RADIUS                   0.1435          // meter (BURGER : 0.080, WAFFLE : 0.1435)
+//#define ROBOT_RADIUS                     0.87           // meter (BURGER : 0.105, WAFFLE : 0.220)
 #define ENCODER_MIN                      -2147483648     // raw
 #define ENCODER_MAX                      2147483648      // raw
 
-#define LEFT                             0
-#define RIGHT                            1
+
 
 #define LINEAR_SCALE                     1.0
 #define ANGULAR_SCALE                    1.0
-#define VELOCITY_CONSTANT_VALUE          (23.87*4.0)  //V =  r*w = 2*pi*r * RPM/330 / 0.06s = RPM       V = r * w = r * RPM * 0.10472   23.873241468266191543070176641389
+#define VELOCITY_CONSTANT_VALUE          (1/(2.0*MY_PI*WHEEL_RADIUS/MOTOR_PULSE/0.06))  //V =  r*w = 2*pi*r * RPM/330 / 0.06s = RPM       V = r * w = r * RPM * 0.10472   23.873241468266191543070176641389
                                                          //   = 0.033 * 0.229 * Goal RPM * 0.10472
                                                          // Goal RPM = V * 1263.632956882
 
@@ -73,7 +74,7 @@
 #define SCALE_VELOCITY_LINEAR_X          1
 #define SCALE_VELOCITY_ANGULAR_Z         1
 
-#define TICK2RAD                         0.019  //=360/330* 3.14159265359 / 180 // 0.087890625[deg] * 3.14159265359 / 180 = 0.001533981f
+#define TICK2RAD                         (2.0*MY_PI/MOTOR_PULSE)  //2*pi/330
 
 #define DEG2RAD(x)                       (x * 0.01745329252)  // *PI/180
 #define RAD2DEG(x)                       (x * 57.2957795131)  // *180/PI

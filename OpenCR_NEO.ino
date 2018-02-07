@@ -169,12 +169,14 @@ void setup()
   
   motor_driver.omni_wheel[0].encoder_a = ENCODER1_A;
   motor_driver.omni_wheel[0].encoder_b = ENCODER1_B;
+  motor_driver.omni_wheel[0].encoder_exit = ENCODER1_R;
   motor_driver.omni_wheel[0].counter = 0;
   motor_driver.omni_wheel[0].count = 0;
   motor_driver.omni_wheel[0].dir = 0;
   
   motor_driver.omni_wheel[1].encoder_a = ENCODER2_A;
   motor_driver.omni_wheel[1].encoder_b = ENCODER2_B;
+  motor_driver.omni_wheel[1].encoder_exit = ENCODER2_R;
   motor_driver.omni_wheel[1].counter = 0;
   motor_driver.omni_wheel[1].count = 0;
   motor_driver.omni_wheel[1].dir = 0;
@@ -199,8 +201,8 @@ void setup()
   pinMode(ENCODER2_B, INPUT_PULLUP);
   
   // set encoder irp falling   
-  attachInterrupt(0, EnCoder1_Handle, FALLING);
-  attachInterrupt(3, EnCoder2_Handle, FALLING);
+  attachInterrupt(motor_driver.omni_wheel[0].encoder_exit, EnCoder1_Handle, FALLING);
+  attachInterrupt(motor_driver.omni_wheel[1].encoder_exit, EnCoder2_Handle, FALLING);
   
   // set timer8
   Timer.stop();
@@ -257,6 +259,8 @@ void setup()
 
   SerialBT2.begin(57600);
 
+  Serial2.begin(115200);
+
   setup_end = true;
 }
 
@@ -266,14 +270,9 @@ void setup()
 void loop()
 {
   test_Serial_Control();
-  //receiveRemoteControlData();
   // add by huang
   last_time = millis() - watch_dog;
   if ( watch_dog != 0 && last_time > 1300 ) {
- /*   analogWrite(MOTOR1_A, HIGH);
-    analogWrite(MOTOR1_B, HIGH);
-    analogWrite(MOTOR2_A, HIGH);
-    analogWrite(MOTOR2_B, HIGH);*/
     goal_linear_velocity  = 0;
     goal_angular_velocity = 0;
     watch_dog = 0;
@@ -283,9 +282,8 @@ void loop()
 
   if ((millis()-tTime[0]) >= (1000 / CONTROL_MOTOR_SPEED_PERIOD))
   {
-    controlMotorSpeed();
-
     tTime[0] = millis();
+    //controlMotorSpeed();
   }
 
   if ((millis()-tTime[1]) >= (1000 / CMD_VEL_PUBLISH_PERIOD))
@@ -354,6 +352,8 @@ void Timer8_Handle() {
   if (motor_driver.omni_wheel[1].dir == 1) {
     motor_driver.ang[1] = -motor_driver.ang[1];
   }
+
+  controlMotorSpeed();
 }
 
 void EnCoder1_Handle(){
@@ -364,128 +364,6 @@ void EnCoder2_Handle(){
 	motor_driver.Count_and_Direction(&motor_driver.omni_wheel[1]);
 }
 
-void test_Serial_Control()
-{
-  if(Serial2.available() > 0 && start_move == false)
-  {
-    delay(100);
-    String comdata = "";
-    int mode = 0;
-    int index = 0;
-    double recv_num[3] = {0};
-    char tbuffer[100] = {0};
-    char *pos = tbuffer;
-    double tkp,tki,tkd;
-    while (Serial2.available() > 0)  
-    {
-      unsigned char ch = Serial2.read();
-      if(ch != ';')
-      {
-        *pos = ch;
-        pos++;
-      }
-      else
-      {
-        *pos = 0;
-        if(index == 0)
-        {
-          mode = atoi(tbuffer);
-        }
-        else if(index == 1)
-        {
-          tkp = atof(tbuffer);
-        }
-        else if(index == 2)
-        {
-          tki = atof(tbuffer);
-        }
-        else if(index == 3)
-        {
-          tkd = atof(tbuffer);
-        }
-        index++;
-        pos = tbuffer;
-      }
-    }
-    if(mode == 0)
-    {
-      motor_driver.m_pid_l.Kp = tkp;
-      motor_driver.m_pid_l.Ki = tki;
-      motor_driver.m_pid_l.Kd = tkd;
-      motor_driver.m_pid_r.Kp = tkp;
-      motor_driver.m_pid_r.Ki = tki;
-      motor_driver.m_pid_r.Kd = tkd; 
-//      test_speed = -test_speed;
-/*      motor_driver.m_pid_r.feedback = 0;
-      motor_driver.m_pid_r.Integral = 0;
-      motor_driver.m_pid_r.output = 0;
-      motor_driver.m_pid_r.last_feedback = 0;
-
-      motor_driver.m_pid_l.feedback = 0;
-      motor_driver.m_pid_l.Integral = 0;
-      motor_driver.m_pid_l.output = 0;
-      motor_driver.m_pid_l.last_feedback = 0;*/
-    }
-    else if(mode == 2)
-    {
-      test_speed = -test_speed;
-      test_d = tki;
-      start_move = true;
-    }
-    else if(mode == 3)
-    {
-      test_speed = tkp;
-      test_d = tki;
-      start_move = true;
-    }
-    else if(mode == 4)
-    {
-      test_speed = -tkp;
-      test_d = tki;
-      
-    }
-    else if(mode == 5)
-    {
-      test_speed = tkp;
-      test_d = tki;
-      motor_driver.m_pid_r.feedback = 0;
-      motor_driver.m_pid_r.Integral = 0;
-      motor_driver.m_pid_r.output = 0;
-      motor_driver.m_pid_r.last_feedback = 0;
-
-      motor_driver.m_pid_l.feedback = 0;
-      motor_driver.m_pid_l.Integral = 0;
-      motor_driver.m_pid_l.output = 0;
-      motor_driver.m_pid_l.last_feedback = 0;
-    }
-    else if(mode == 1)
-    {
-      motor_driver.m_pid_r.Kp = tkp;
-      motor_driver.m_pid_r.Ki = tki;
-      motor_driver.m_pid_r.Kd = tkd; 
-    }
-    else if(mode == 9)
-    {
-      start_move = false;
-      return;
-    }
-    Serial2.print(tkp,5);
-    Serial2.print(",");
-    Serial2.print(tki,5);
-    Serial2.print(",");
-    Serial2.print(tkd,5);
-    Serial2.println("");
-    Serial2.flush();
-    motor_driver.omni_wheel[0].counter = 0;
-    motor_driver.omni_wheel[1].counter = 0;
-    start_move = true;
-    end_tick = millis();
-    sensor_state_msg.left_encoder = 0;
-    sensor_state_msg.right_encoder = 0;
-    last_left_encoder = sensor_state_msg.left_encoder;
-    last_right_encoder = sensor_state_msg.right_encoder; 
-  }
-}
 
 /*******************************************************************************
 * Callback function for cmd_vel msg
@@ -833,13 +711,13 @@ void controlMotorSpeed(void)
   {
     lin_vel2 = -LIMIT_X_MAX_VELOCITY;
   }
-  motor_driver.speed_motor.v_motor1 = (int)lin_vel1;
-  motor_driver.speed_motor.v_motor2 = (int)lin_vel2;
+  wheel_speed_cmd[LEFT] = (int)lin_vel1;
+  wheel_speed_cmd[RIGHT] = (int)-lin_vel2;
 
   if(pidflag)
   {
 #if 0
-    debug_print(abs(motor_driver.speed_motor.v_motor1));
+    /*debug_print(abs(motor_driver.speed_motor.v_motor1));
     debug_print(",");
     debug_print(abs(-motor_driver.speed_motor.v_motor2));
     debug_print(",");
@@ -851,16 +729,25 @@ void controlMotorSpeed(void)
     debug_print(",");
     debug_print(motor_driver.omni_wheel[1].counter);
     debug_print(",");
-    debug_print(motor_driver.m_pid_l.output);
+    debug_print(motor_driver.m_pid[LEFT].output);
     debug_print(",");
-    debug_print(motor_driver.m_pid_r.output);
+    debug_print(motor_driver.m_pid[RIGHT].output);
     debug_print(",");
-    debug_print(motor_driver.m_pid_l.Integral);
+    debug_print(motor_driver.m_pid[LEFT].Integral);
     debug_print(",");
-    debug_print(motor_driver.m_pid_r.Integral);
-    debug_println(",0");
+    debug_print(motor_driver.m_pid[RIGHT].Integral);
+    debug_println(",0");*/
+    //SendVal('1',(motor_driver.ang[0]/100.0));
+    DataScope_Get_Channel_Data(motor_driver.ang[LEFT],1);
+    DataScope_Get_Channel_Data(motor_driver.ang[RIGHT],2);
+    DataScope_Get_Channel_Data(wheel_speed_cmd[LEFT],3);
+    DataScope_Get_Channel_Data(wheel_speed_cmd[RIGHT],4);
+    DataScope_Get_Channel_Data(motor_driver.m_pid[LEFT].Integral,5);
+    DataScope_Get_Channel_Data(motor_driver.m_pid[RIGHT].Integral,6);
+    int count = DataScope_Data_Generate(6);
+    Serial.write(DataScope_OutPut_Buffer,count);
 #endif
-		dxl_comm_result = motor_driver.speedControl((int64_t)lin_vel1, (int64_t)lin_vel2,motor_driver.ang[0],motor_driver.ang[1]);
+		dxl_comm_result = motor_driver.speedControl((int64_t)wheel_speed_cmd[LEFT], (int64_t)wheel_speed_cmd[RIGHT],motor_driver.ang[LEFT],motor_driver.ang[RIGHT]);
 
   }
   else
@@ -931,9 +818,9 @@ void testDrive(void)
   double diff_encoder = 0.0;
   if (start_move)
   {
-    diff_encoder = test_d / (0.207 / 330); // (Circumference) / (The number of tick per revolution)
+    diff_encoder = test_d*1000; // (Circumference) / (The number of tick per revolution)
 
-    if (abs(end_tick - current_tick) <= 4000)
+    if (abs(end_tick - current_tick) <= test_d*4000)
     {
       cmd_vel_rc100_msg.linear.x  = test_speed * SCALE_VELOCITY_LINEAR_X;
       goal_linear_velocity  = cmd_vel_rc100_msg.linear.x;
@@ -950,7 +837,7 @@ void testDrive(void)
   else if (start_rotate)
   {
     diff_encoder = test_d / (0.207 / 330); 
-    if (abs(end_tick - current_tick) <= 4000)
+    if (abs(end_tick - current_tick) <= test_d*4000)
     {
       cmd_vel_rc100_msg.linear.x  = -test_speed * SCALE_VELOCITY_LINEAR_X;
       goal_linear_velocity  = cmd_vel_rc100_msg.linear.x;

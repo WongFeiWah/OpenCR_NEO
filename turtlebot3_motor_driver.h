@@ -38,6 +38,9 @@
 #endif
 
 
+#define LEFT                             1
+#define RIGHT                            0
+
 
 #define BUADRATE 115200
 #define intervalTime_timer8  150000  //30ms  intervalTime_timer8 should be larger than 100ms without watchdog
@@ -102,15 +105,17 @@ Servo myservo;  // create servo object to control a servo
 //the pin num of motor, two pins for 1 motor,  MOTOR1_A and MOTOR1_B are for the motor1
 #define MOTOR1_A  6
 #define MOTOR1_B  9
-#define MOTOR2_A  11
-#define MOTOR2_B  10
+#define MOTOR2_A  10
+#define MOTOR2_B  11
 
 
 //the pin number of encoder, ENCODERX is for motorX
 #define ENCODER1_A  5
 #define ENCODER1_B  2
+#define ENCODER1_R  0
 #define ENCODER2_A  12
 #define ENCODER2_B  7
+#define ENCODER2_R  3
 
 
 #ifndef BTYE
@@ -126,6 +131,8 @@ typedef struct
   char dir;
   char encoder_a;
   char encoder_b;
+  char encoder_exit;
+  unsigned long tick;
 }Wheel;
 
 typedef struct
@@ -181,12 +188,14 @@ class Turtlebot3MotorDriver
   // add by huang
   void Count_and_Direction(Wheel *omni);
 
+
   
   RRobotData speed_motor;  
   Wheel omni_wheel[2];
   float ang[2] ;   //the speed of each wheel,r/min
-  MOTOR_PID m_pid_l;
-  MOTOR_PID m_pid_r;
+  //MOTOR_PID m_pid[LEFT];
+  //MOTOR_PID m_pid[RIGHT];
+  MOTOR_PID m_pid[2];
   
  private:
 	float	protocol_version_;
