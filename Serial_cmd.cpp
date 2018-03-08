@@ -5,7 +5,7 @@ extern double test_speed;
 extern double test_d;
 extern int64_t end_tick;
 extern Turtlebot3MotorDriver motor_driver;
-
+static char sendData[256];
 
 unsigned char DataScope_OutPut_Buffer[42] = {0};     //串口发送缓冲区
 
@@ -157,7 +157,6 @@ void test_Serial_Control()
 
 void SendVal(char mode, float val)
 {
-  char sendData[8] = {0};
 
   sendData[0] = 0xAA;
   sendData[1] = mode;
@@ -166,6 +165,19 @@ void SendVal(char mode, float val)
   
   sendData[6] = 0xBB;
   Serial2.write(sendData, 7);
+}
+
+void SendIMU(IMU_MSG val)
+{
+  
+  sendData[0] = 0xAA;
+  sendData[1] = sizeof(IMU_MSG);
+  sendData[2] = 'I';
+  
+  memcpy(&sendData[3], &val, sizeof(IMU_MSG));
+  
+  sendData[sendData[1]+3] = 0xBB;
+  Serial.write(sendData, sendData[1]+4);
 }
 
 

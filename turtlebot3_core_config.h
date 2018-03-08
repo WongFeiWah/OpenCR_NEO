@@ -44,7 +44,7 @@
 #include "Serial_cmd.h"
 #define MY_PI                            3.141592653
 #define CONTROL_MOTOR_SPEED_PERIOD       15   //hz
-#define IMU_PUBLISH_PERIOD               50  //hz
+#define IMU_PUBLISH_PERIOD               100  //hz
 #define SENSOR_STATE_PUBLISH_PERIOD      30   //hz
 #define CMD_VEL_PUBLISH_PERIOD           30   //hz
 #define DRIVE_INFORMATION_PUBLISH_PERIOD 30   //hz

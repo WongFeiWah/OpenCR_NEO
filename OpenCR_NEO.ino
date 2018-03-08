@@ -220,11 +220,11 @@ void setup()
   nh.subscribe(init_pose_sub);
   nh.advertise(sensor_state_pub);
   nh.advertise(imu_pub);
-  nh.advertise(cmd_vel_rc100_pub);
+  //nh.advertise(cmd_vel_rc100_pub);
   nh.advertise(odom_pub);
   nh.advertise(joint_states_pub);
-  nh.advertise(sonar_pub);
-  tfbroadcaster.init(nh);
+  //nh.advertise(sonar_pub);
+  //tfbroadcaster.init(nh);
 
   nh.loginfo("Connected to OpenCR board!");
 
@@ -259,7 +259,7 @@ void setup()
 
   SerialBT2.begin(57600);
 
-  Serial2.begin(115200);
+  //Serial.begin(115200);
 
   setup_end = true;
 }
@@ -279,7 +279,7 @@ void loop()
   }
 
 
-
+  
   if ((millis()-tTime[0]) >= (1000 / CONTROL_MOTOR_SPEED_PERIOD))
   {
     tTime[0] = millis();
@@ -288,7 +288,7 @@ void loop()
 
   if ((millis()-tTime[1]) >= (1000 / CMD_VEL_PUBLISH_PERIOD))
   {
-    cmd_vel_rc100_pub.publish(&cmd_vel_rc100_msg);
+    //cmd_vel_rc100_pub.publish(&cmd_vel_rc100_msg);
 
     //Sonar_Update(sonar1_msg);
     //sonar_pub.publish(&sonar1_msg);
@@ -300,11 +300,13 @@ void loop()
   {
     publishSensorStateMsg();
     publishDriveInformation();
+    //Serial.println("sadasdasd");
     tTime[2] = millis();
   }
 
-  if ((millis()-tTime[3]) >= (1000 / IMU_PUBLISH_PERIOD))
+  if ((millis()-tTime[3]) >= (1000 / 100) ) //IMU_PUBLISH_PERIOD))
   {
+    
     publishImuMsg();
     tTime[3] = millis();
   }
@@ -392,6 +394,7 @@ void InitPoseCallback(const geometry_msgs::PoseWithCovarianceStamped &msg)
 *******************************************************************************/
 void publishImuMsg(void)
 {
+  
   imu_msg.header.stamp    = nh.now();
   imu_msg.header.frame_id = "imu_link";
   
@@ -462,7 +465,7 @@ void publishSensorStateMsg(void)
 
   int32_t current_tick;
 
-  sensor_state_msg.stamp = nh.now();
+  //sensor_state_msg.stamp = nh.now();
   sensor_state_msg.battery = checkVoltage();
   
   dxl_comm_result = motor_driver.readEncoder(sensor_state_msg.left_encoder, sensor_state_msg.right_encoder);
@@ -522,8 +525,8 @@ void publishDriveInformation(void)
   joint_states_pub.publish(&joint_states);
 
   // tf
-  updateTF(odom_tf);
-  tfbroadcaster.sendTransform(odom_tf);
+  //updateTF(odom_tf);
+  //tfbroadcaster.sendTransform(odom_tf);
 }
 
 /*******************************************************************************

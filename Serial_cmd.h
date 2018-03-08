@@ -6,6 +6,18 @@
 #include <std_msgs/Float64MultiArray.h>
 #include "turtlebot3_motor_driver.h"
 
+
+typedef struct{
+  short acc[3];
+  short gyro[3];
+
+  float w;
+  float x;
+  float y;
+  float z;
+}IMU_MSG;
+
+
 extern unsigned char DataScope_OutPut_Buffer[42];     //待发送帧数据缓存区
 
 
@@ -16,5 +28,6 @@ unsigned char DataScope_Data_Generate(unsigned char Channel_Number);  // 发送�
 
 void test_Serial_Control();
 void SendVal(char mode, float val);
+void SendIMU(IMU_MSG val);
 
 #endif
