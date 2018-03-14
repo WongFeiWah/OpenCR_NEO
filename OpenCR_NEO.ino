@@ -224,7 +224,7 @@ void setup()
   nh.advertise(odom_pub);
   nh.advertise(joint_states_pub);
   //nh.advertise(sonar_pub);
-  //tfbroadcaster.init(nh);
+  tfbroadcaster.init(nh);
 
   nh.loginfo("Connected to OpenCR board!");
 
